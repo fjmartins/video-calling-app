@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import io from 'socket.io-client'
 import Message from './Message';
-import {Panel} from 'react-bootstrap';
+import Friend from './Friend';
+
+import io from 'socket.io-client'
 let socket = io(`http://localhost:4443`);
 
 export default class Chat extends Component {
@@ -12,6 +13,7 @@ export default class Chat extends Component {
       username: "",
       loggedIn: false,
       messages: [],
+      userlist: [],
     }
 
     this.login = this.login.bind(this);
@@ -31,13 +33,7 @@ export default class Chat extends Component {
     this.setState({loggedIn: true});
   }
 
-  refresh() {
-
-  }
-
   componentDidMount() {
-    this.interval = setInterval(() => this.refresh(), 10000);
-
     socket.on('connect', function(data) {
       console.log('connected');
     });
@@ -55,6 +51,8 @@ export default class Chat extends Component {
         default:
         break;
       }
+
+      this.setState({userlist: data.userlist});
     });
 
     socket.on('userMessage', (data) => {
@@ -72,10 +70,12 @@ export default class Chat extends Component {
       switch(data.type) {
         case "login":
           this.notify("Logged in as " + data.username);
+          this.setState({userlist: data.userlist});
         break;
         default:
         break;
       }
+      console.log(data.userlist);
     });
   }
 
@@ -107,7 +107,7 @@ export default class Chat extends Component {
         sender: this.state.username,
       });
       var messages = this.state.messages;
-      messages.push(this.state.username + ": " + this.state.message);
+      messages.push(this.state.username + "(you): " + this.state.message);
       this.setState({messages: messages});
       this.setState({message: ""});
     } else {
@@ -128,25 +128,45 @@ export default class Chat extends Component {
     }
   }
 
+  showOnlineUsers() {
+    if(this.state.loggedIn) {
+      const Users = ({list}) => (
+        <ul>
+          {
+            list.map((user, i) => <Friend key={i} text={"> "+ user.name} />)
+          }
+        </ul>
+      );
+
+      return (
+        <div>
+          <p>Online Users:</p>
+          <Users list={this.state.userlist}/>
+        </div>
+      )
+    }
+  }
+
   render() {
     const Messages = ({items}) => (
       <ul>
         {
-          items.map((item, i) => <Message text={item} />)
+          items.map((item, i) => <Message key={i} text={item} />)
         }
       </ul>
     );
 
+
+
     return (
       <div>
-        <Panel>
-          {this.showLogin()}
-          <Messages items={this.state.messages} />
-          <input type="text" value={this.state.message} onChange={this.handleChangeMessage} />
-          <button onClick={this.sendMessage}>
-            Send
-          </button>
-        </Panel>
+        {this.showLogin()}
+        <Messages items={this.state.messages} />
+        <input type="text" value={this.state.message} onChange={this.handleChangeMessage} />
+        <button onClick={this.sendMessage}>
+          Send
+        </button>
+        {this.showOnlineUsers()}
       </div>
     );
   }

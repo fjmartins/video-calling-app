@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Chat from './Chat';
+import {Panel} from 'react-bootstrap';
 
 export default class Home extends Component {
 
@@ -7,14 +8,12 @@ export default class Home extends Component {
     super();
   }
 
-  componentDidMount() {
-
-  }
-
   render() {
     return (
       <div>
-        <Chat/>
+        <Panel>
+          <Chat/>
+        </Panel>
       </div>
     );
   }

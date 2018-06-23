@@ -6,7 +6,7 @@ var http = require('http');
 var server = http.createServer(app);
 var io = require('socket.io')(server);
 var sockets = {};
-var users = {};
+var users = [];
 function sendTo(connection, message) {
   connection.send(message);
 }
@@ -22,9 +22,18 @@ io.on('connection', function(socket){
   socket.on('disconnect', function () {
     console.log("User disconnected");
     if(socket.name){
-      socket.broadcast.to("chatroom").emit('notification', {type: "disconnection", username: socket.name})
       delete sockets[socket.name];
-      delete users[socket.name];
+
+      users.splice(users.indexOf(socket.name), 1 );
+
+      // delete users[socket.name];
+
+      socket.broadcast.to("chatroom").emit('notification',{
+        type: "disconnection",
+        success: true,
+        username: socket.name,
+        userlist: users
+      });
     }
   });
 
@@ -41,15 +50,22 @@ io.on('connection', function(socket){
           success: false
         });
       } else {
-        var templist = users;
         sockets[data.name] = socket;
         socket.name = data.name;
         socket.join("chatroom");
-        socket.broadcast.to("chatroom").emit('notification',{ type: "connection", username: data.name})
-        users[data.name] = socket.id
+
+        users.push({name:data.name, socketID: socket.id});
+        var templist = users;
 
         sendTo(socket, {
           type: "login",
+          success: true,
+          username: data.name,
+          userlist: templist
+        });
+
+        socket.broadcast.to("chatroom").emit('notification',{
+          type: "connection",
           success: true,
           username: data.name,
           userlist: templist
